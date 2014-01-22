@@ -1,0 +1,18 @@
+// Managed by Puppet!!
+
+options {
+	directory "<%= @directory %>";
+	auth-nxdomain no;    # conform to RFC1035
+	listen-on { any; };
+	listen-on-v6 { any; };
+	recursion no;
+	notify no;
+	allow-update { none; };
+	allow-transfer { none; };
+	interface-interval 1;
+
+	# dnsshim
+	allow-new-zones yes;
+	
+};
+

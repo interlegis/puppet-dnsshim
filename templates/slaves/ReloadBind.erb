@@ -1,0 +1,20 @@
+#!/bin/sh
+# /etc/ha.d/resource.d/ReloadBind
+# Bind must be reloaded to assume Heartbeat IP Address
+
+logger $0 called with $1
+case "$1" in
+start)
+    # Start commands go here
+    /usr/sbin/rndc reload
+    ;;
+stop)
+    # Stop commands go here
+    ;;
+status)
+    # Status commands go here
+    true
+    ;;
+esac
+
+

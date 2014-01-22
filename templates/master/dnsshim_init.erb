@@ -1,0 +1,127 @@
+#!/bin/bash
+# DNSSHIM init script
+# Author: Fabio Kaiser Rauber
+# 	 fabior@interlegis.leg.br
+#
+### BEGIN INIT INFO
+# Provides:          dnsshim
+# Required-Start:    $local_fs networking
+# Required-Stop:     $local_fs networking
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: DNS Secure Hidden Master
+# Description:       Start DNSSEC management master server Signer and XFRD
+### END INIT INFO
+
+LANG="C"
+export LANG
+. /lib/lsb/init-functions
+
+
+DNSSHIM_ETC=<%= @dnsshim_home %>
+DNSSHIM_BIN=<%= @installdir %>/dnsshim
+XFRD_PIDFILE=/var/run/dnsshim-xfrd.pid
+SGNR_PIDFILE=/var/run/dnsshim-signer.pid
+JAVABIN=$(which java)
+EXECUSER="root"
+PID=0
+PID1=0
+
+start() {
+	RETVAL=2
+	export DNSSHIM_HOME=$DNSSHIM_ETC
+	if [ ! -e ${SGNR_PIDFILE} ] ; then
+		log_daemon_msg "Starting DNSSHIM Signer:" "dnsshim-signer.jar"
+		start-stop-daemon --chdir $DNSSHIM_BIN --chuid $EXECUSER --start --pidfile $SGNR_PIDFILE --make-pidfile --background --startas $JAVABIN -- -jar -Dlog4j.configuration=$DNSSHIM_BIN/log4j-signer.properties $DNSSHIM_BIN/dnsshim-signer.jar
+		status=$?
+        	log_end_msg $status
+		RETVAL=$status
+        else
+	        status_of_proc -p $SGNR_PIDFILE $JAVABIN "DNSSHIM Signer"
+		status=$?
+		RETVAL=$status
+        	if [ $status -ne 0 ]; then
+                	rm -f ${SGNR_PIDFILE}
+        	fi
+	fi 
+
+	if [ ! -e ${XFRD_PIDFILE} ] ; then
+		log_daemon_msg "Starting DNSSHIM XFRD:" "dnsshim-xfrd.jar"
+        	start-stop-daemon --chdir $DNSSHIM_BIN --chuid $EXECUSER --start --pidfile $XFRD_PIDFILE --make-pidfile --background --startas $JAVABIN -- -jar -Dlog4j.configuration=$DNSSHIM_BIN/log4j-xfrd.properties $DNSSHIM_BIN/dnsshim-xfrd.jar
+                status=$?
+        	log_end_msg $status
+		if [ $RETVAL -eq 0 ]; then
+                	RETVAL=$status
+		fi
+	else
+                status_of_proc -p $XFRD_PIDFILE $JAVABIN "DNSSHIM XFRD"
+                status=$?
+		if [ $RETVAL -eq 0 ]; then
+			RETVAL=$status
+		fi 
+                if [ $status -ne 0 ]; then
+                        rm -f ${XFRD_PIDFILE}
+                fi
+        fi 
+	return $RETVAL
+}
+
+stop() {
+	
+	RETVAL=2	
+	log_daemon_msg "Stopping DNSSHIM XFRD" "dnsshim-xfrd.jar"
+    	start-stop-daemon --stop --quiet --pidfile ${XFRD_PIDFILE}
+	status=$?
+    	log_end_msg $status
+    	rm -f ${XFRD_PIDFILE}
+	RETVAL=$status
+
+	log_daemon_msg "Stopping DNSSHIM Signer" "dnsshim-signer.jar"
+        start-stop-daemon --stop --quiet --pidfile ${SGNR_PIDFILE}
+	status=$?
+        log_end_msg $status
+        rm -f ${SGNR_PIDFILE}
+	if [ $RETVAL -eq 0 ]; then
+		RETVAL=$status
+	fi
+
+	return $RETVAL
+}
+
+status() {
+	RETVAL=3
+	
+        status_of_proc -p $SGNR_PIDFILE $JAVABIN "DNSSHIM Signer"
+	status=$?
+	RETVAL=$status
+
+        status_of_proc -p $XFRD_PIDFILE $JAVABIN "DNSSHIM XFRD"
+        status=$?
+        if [ $RETVAL -eq 0 ]; then
+             RETVAL=$status
+        fi
+
+	return $RETVAL 
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    restart)
+        stop
+	sleep 4
+        start
+        ;;
+    *)
+        echo "Usage:  {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+exit $?

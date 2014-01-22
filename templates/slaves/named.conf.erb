@@ -1,0 +1,29 @@
+// Managed by Puppet!!!
+include "/etc/bind/named.conf.options";
+include "/etc/bind/named.conf.default-zones";
+
+<% index=-1 -%>
+<% i=0 -%>
+<% ns_slaves.each do |name| -%>
+<%      if ns_slaves[i]['name'] == @hostname  -%>
+<%              index=i         -%>
+<%              break                   -%>
+<%      end                     -%>
+<%      i+=1    -%>
+<% end -%>
+
+key "<%= ns_slaves[index]['name'] %>" {
+        algorithm hmac-md5;
+        secret "<%= ns_slaves[index]['secret'] %>";
+};
+
+server <%= @ns_hidden_master %> { keys "<%= ns_slaves[index]['name'] %>";};
+controls {
+        inet * allow {
+                127.0.0.1;
+                <%= @ns_hidden_master %>;
+        } keys {
+                "<%= ns_slaves[index]['name'] %>";
+        };
+};
+

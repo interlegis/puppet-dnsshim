@@ -1,0 +1,21 @@
+<% index=-1 -%>
+<% i=0 -%>
+<% ns_slaves.each do |name| -%>
+<%      if ns_slaves[i]['name'] == hostname  -%>
+<%              index=i         -%>
+<%              break                   -%>
+<%      end                     -%>
+<%      i+=1    -%>
+<% end -%>
+# Managed by Puppet!
+
+options {
+        default-server  localhost;
+        default-key     <%= ns_slaves[index]['name'] %>;
+};
+
+key "<%= ns_slaves[index]['name'] %>" {
+        algorithm hmac-md5;
+        secret "<%= ns_slaves[index]['secret'] %>";
+};
+

@@ -1,0 +1,14 @@
+## MANAGED BY PUPPET
+## Module: dnsshim
+
+<% ns_slaves.each do |slave| -%>
+key "<%= slave['name'] %>" {
+        algorithm hmac-md5;
+        secret "<%= slave['secret'] %>";
+};
+server <%= slave['ip'] %> {
+        key "<%= slave['name'] %>";
+};
+
+<% end -%>
+
